@@ -76,9 +76,68 @@ SELECT * FROM DAU_7_days
 
 
 
-3. What's the daily new player count and new players' D1, D7 retention, in the past 30 days? The result should have these columns: date, new_user_count, d1_retention, d7_retention (leavel column blank/NULL for players)
+3. What's the daily new player count and new players' D1, D7 retention, in the past 30 days? The result should have these columns: date, 
+new_user_count, d1_retention, d7_retention (leavel column blank/NULL for players)
 
+WITH daily_new_players AS (
+    SELECT
+        p.first_played_date AS date,
+        COUNT(DISTINCT p.player_id) AS new_user_count
+    FROM
+        player_table p
+    WHERE
+        p.first_played_date BETWEEN CURRENT_DATE - INTERVAL '30' DAY AND CURRENT_DATE
+    GROUP BY
+        p.first_played_date
+),
+d1_retention AS (
+    SELECT
+        p.first_played_date AS date,
+        COUNT(DISTINCT e.player_id) AS d1_retained
+    FROM
+        player_table p
+    JOIN
+        engagement_table e ON p.player_id = e.player_id
+    WHERE
+        e.engagement_date = p.first_played_date + INTERVAL '1' DAY
+        AND p.first_played_date BETWEEN CURRENT_DATE - INTERVAL '30' DAY AND CURRENT_DATE
+    GROUP BY
+        p.first_played_date
+),
+d7_retention AS (
+    SELECT
+        p.first_played_date AS date,
+        COUNT(DISTINCT e.player_id) AS d7_retained
+    FROM
+        player_table p
+    JOIN
+        engagement_table e ON p.player_id = e.player_id
+    WHERE
+        e.engagement_date = p.first_played_date + INTERVAL '7' DAY
+        AND p.first_played_date BETWEEN CURRENT_DATE - INTERVAL '30' DAY AND CURRENT_DATE
+    GROUP BY
+        p.first_played_date
+)
 
+SELECT
+    dnp.date,
+    dnp.new_user_count,
+    CASE 
+        WHEN dnp.new_user_count > 0 THEN ROUND(d1.d1_retained::numeric / dnp.new_user_count, 4)
+        ELSE NULL
+    END AS d1_retention,
+    CASE 
+        WHEN dnp.new_user_count > 0 THEN ROUND(d7.d7_retained::numeric / dnp.new_user_count, 4)
+        ELSE NULL
+    END AS d7_retention
+FROM
+    daily_new_players dnp
+LEFT JOIN
+    d1_retention d1 ON dnp.date = d1.date
+LEFT JOIN
+    d7_retention d7 ON dnp.date = d7.date
+ORDER BY
+    dnp.date;
 
 4. Get daily DAU in the past 30 day for each country, then use window function to calculate total DAU for that day. The result should have these columns: date, country, DAU_country, DAU_total.
 
