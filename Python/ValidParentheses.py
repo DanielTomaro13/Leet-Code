@@ -23,3 +23,25 @@ class Solution:
                 if not stack or mapping[char] != stack.pop():
                     return False
         return not stack
+    
+
+class Solution:
+    def isValid(self, string:str) -> bool:
+        # each part of string goes in here
+        stack = []
+        # hash map
+        mapping = {')': '(', '}': '{', ']': '['}
+
+        for c in string:
+            # if closing make sure stack is not empty and stake is matching opening
+            if c in mapping:
+                if stack and stack[-1] == mapping[c]:
+                    stack.pop()
+                else:
+                    return False
+            else:
+                stack.append(c)
+            
+        return True if not stack else False # return true if empty
+    
+    
